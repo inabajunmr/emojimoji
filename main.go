@@ -4,14 +4,17 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/color"
 	"image/jpeg"
-	_ "image/png"
 	"io"
+	"io/ioutil"
 	"os"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/draw"
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/gobold"
 	"golang.org/x/image/math/fixed"
 )
 
@@ -21,24 +24,41 @@ const (
 )
 
 const (
-	imagePath     = "./noto-emoji/png/128"
-	fontSize      = 64  // point
-	imageWidth    = 640 // pixel
-	imageHeight   = 120 // pixel
-	textTopMargin = 80  // fixed.I
+	imagePath   = "./noto-emoji/png/128"
+	imageHeight = 128
 )
 
-func main() {
-	// TrueType フォントの読み込み
-	ft, err := truetype.Parse(gobold.TTF)
+// TODO error handling
+// TODO text and bg Color
+func generate(text string) *image.RGBA {
+	b, err := ioutil.ReadFile("./GenShinGothic-Bold.ttf")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	ft, err := truetype.Parse(b)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(exitFailure)
 	}
 
+	lines := strings.Split(text, "/n")
+
+	max := 0
+	for _, line := range lines {
+		c := utf8.RuneCountInString(line)
+		if c > max {
+			max = c
+		}
+	}
+
+	fontSize := imageHeight / len(lines)
+	imageWidth := max * fontSize
+
 	opt := truetype.Options{
-		Size:              fontSize,
+		Size:              float64(fontSize),
 		DPI:               0,
 		Hinting:           0,
 		GlyphCacheEntries: 0,
@@ -47,34 +67,42 @@ func main() {
 	}
 
 	img := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight))
+
+	blue := color.RGBA{0, 0, 255, 255} // TODO color
+	draw.Draw(img, img.Bounds(), &image.Uniform{blue}, image.ZP, draw.Src)
+
 	face := truetype.NewFace(ft, &opt)
 
 	dr := &font.Drawer{
 		Dst:  img,
-		Src:  image.White,
+		Src:  image.NewUniform(color.RGBA{255, 255, 255, 255}),
 		Face: face,
 		Dot:  fixed.Point26_6{},
 	}
 
-	text := "Hello, world! 👋"
+	margin := fontSize - 10/len(lines)
+	for _, line := range lines {
 
-	// TODO 改行の数をカウントし、初期位置を決める
-	// 画像の高さ / 改行の数でいいはず
+		dr.Dot.X = 0
+		dr.Dot.Y = fixed.I(margin)
 
-	// 描画の初期位置
-	dr.Dot.X = 0
-	dr.Dot.Y = fixed.I(textTopMargin) // TODO
-
-	// 一文字ずつ描画していく
-	for _, r := range text {
-		// 初期位置をリセット
-		// Dot.Yを既存+テキストの高さにする
-		dr.DrawString(string(r))
+		dr.DrawString(string(line))
+		margin = margin + fontSize
 	}
 
-	// JPEG に変換して stdout に出力
+	rctSrc := img.Bounds()
+	imgDst := image.NewRGBA(image.Rect(0, 0, rctSrc.Dy(), rctSrc.Dy()))
+	draw.CatmullRom.Scale(imgDst, imgDst.Bounds(), img, rctSrc, draw.Over, nil)
+
+	return imgDst
+}
+
+func main() {
+
+	input := "かたい/n意思"
+
 	buf := &bytes.Buffer{}
-	err = jpeg.Encode(buf, img, nil)
+	err := jpeg.Encode(buf, generate(input), nil)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(exitFailure)
