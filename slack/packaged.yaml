@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'slack
+
+  SAM Template for slack slash command
+
+  '
+Globals:
+  Function:
+    Timeout: 5
+Outputs:
+  SlackAPI:
+    Description: API Gateway endpoint URL
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack/
+  SlackFunction:
+    Description: ARN
+    Value:
+      Fn::GetAtt:
+      - SlackFunction
+      - Arn
+  SlackFunctionIamRole:
+    Description: Implicit IAM Role created for slack function
+    Value:
+      Fn::GetAtt:
+      - SlackFunctionRole
+      - Arn
+Resources:
+  SlackFunction:
+    Properties:
+      CodeUri: s3://test-inaba-12345/0811c21df5a988d1cc06761f534bd40f
+      Environment:
+        Variables:
+          VERIFICATION_TOKEN: rR8MD1zJgQPxvaYuUcgwKfIf
+      Events:
+        CatchAll:
+          Properties:
+            Method: POST
+            Path: /app
+          Type: Api
+      Handler: app
+      Runtime: go1.x
+      Tracing: Active
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31
