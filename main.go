@@ -12,15 +12,13 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/inabajunmr/gocolors"
+
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/draw"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
-)
-
-const (
-	exitSuccess = 0
-	exitFailure = 1
+	"golang.org/x/xerrors"
 )
 
 const (
@@ -28,20 +26,12 @@ const (
 	imageHeight = 128
 )
 
-// TODO error handling
-// TODO text and bg Color
-func generate(text string) *image.RGBA {
-	b, err := ioutil.ReadFile("./GenShinGothic-Bold.ttf")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+func GenerateEmoji(text string, bcolor color.RGBA, fcolor color.RGBA) (*image.RGBA, error) {
 
-	ft, err := truetype.Parse(b)
-
+	ft, err := loadFont()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(exitFailure)
+		return nil, xerrors.Errorf("Unexpected error. Can not load font file.", err)
 	}
 
 	lines := strings.Split(text, "/n")
@@ -67,15 +57,13 @@ func generate(text string) *image.RGBA {
 	}
 
 	img := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight))
-
-	blue := color.RGBA{0, 0, 255, 255} // TODO color
-	draw.Draw(img, img.Bounds(), &image.Uniform{blue}, image.ZP, draw.Src)
+	draw.Draw(img, img.Bounds(), &image.Uniform{fcolor}, image.ZP, draw.Src)
 
 	face := truetype.NewFace(ft, &opt)
 
 	dr := &font.Drawer{
 		Dst:  img,
-		Src:  image.NewUniform(color.RGBA{255, 255, 255, 255}),
+		Src:  image.NewUniform(bcolor),
 		Face: face,
 		Dot:  fixed.Point26_6{},
 	}
@@ -94,23 +82,43 @@ func generate(text string) *image.RGBA {
 	imgDst := image.NewRGBA(image.Rect(0, 0, rctSrc.Dy(), rctSrc.Dy()))
 	draw.CatmullRom.Scale(imgDst, imgDst.Bounds(), img, rctSrc, draw.Over, nil)
 
-	return imgDst
+	return imgDst, nil
+}
+
+func loadFont() (font *truetype.Font, err error) {
+	b, err := ioutil.ReadFile("./GenShinGothic-Bold.ttf")
+	if err != nil {
+		fmt.Println(err)
+		return nil, xerrors.Errorf("Unexpected error. Can not load font file.", err)
+	}
+
+	ft, err := truetype.Parse(b)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return nil, xerrors.Errorf("Unexpected error. Can not parse font file.", err)
+	}
+
+	return ft, err
 }
 
 func main() {
 
 	input := "かたい/n意思"
+	fcolor := gocolor.Of(gocolor.Red, 255)
+	bcolor := gocolor.Of(gocolor.Yellow, 255)
+
+	emoji, _ := GenerateEmoji(input, fcolor, bcolor)
 
 	buf := &bytes.Buffer{}
-	err := jpeg.Encode(buf, generate(input), nil)
+	err := jpeg.Encode(buf, emoji, nil)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(exitFailure)
+		os.Exit(1)
 	}
 
 	_, err = io.Copy(os.Stdout, buf)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(exitFailure)
+		os.Exit(1)
 	}
 }
