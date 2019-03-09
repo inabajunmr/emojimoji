@@ -1,4 +1,4 @@
-package main
+package emosh
 
 import (
 	"bytes"
@@ -103,7 +103,7 @@ func loadFont() (font *truetype.Font, err error) {
 
 func main() {
 
-	input := "かたい/n意思"
+	input := "GOOD/nBYE"
 	fcolor := gocolor.Of(gocolor.Red, 255)
 	bcolor := gocolor.Of(gocolor.Yellow, 255)
 
