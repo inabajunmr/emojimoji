@@ -1,18 +1,13 @@
 package emosh
 
 import (
-	"bytes"
 	"fmt"
 	"image"
 	"image/color"
-	"image/jpeg"
-	"io"
 	"io/ioutil"
 	"os"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/inabajunmr/gocolors"
 
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/draw"
@@ -86,7 +81,13 @@ func GenerateEmoji(text string, bcolor color.RGBA, fcolor color.RGBA) (*image.RG
 }
 
 func loadFont() (font *truetype.Font, err error) {
-	b, err := ioutil.ReadFile("./GenShinGothic-Bold.ttf")
+	f, err := Assets.Open("/html/index.html")
+	if err != nil {
+		fmt.Println(err)
+		return nil, xerrors.Errorf("Unexpected error. Can not load font file.", err)
+	}
+
+	b, err := ioutil.ReadAll(f)
 	if err != nil {
 		fmt.Println(err)
 		return nil, xerrors.Errorf("Unexpected error. Can not load font file.", err)
@@ -99,26 +100,4 @@ func loadFont() (font *truetype.Font, err error) {
 	}
 
 	return ft, err
-}
-
-func main() {
-
-	input := "GOOD/nBYE"
-	fcolor := gocolor.Of(gocolor.Red, 255)
-	bcolor := gocolor.Of(gocolor.Yellow, 255)
-
-	emoji, _ := GenerateEmoji(input, fcolor, bcolor)
-
-	buf := &bytes.Buffer{}
-	err := jpeg.Encode(buf, emoji, nil)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	_, err = io.Copy(os.Stdout, buf)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
 }
