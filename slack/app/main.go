@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/jpeg"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -12,7 +13,7 @@ import (
 
 	"github.com/inabajunmr/gocolors"
 
-	"github.com/inabajunmr/emosh"
+	"github.com/inabajunmr/emosh/emosh"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -111,11 +112,11 @@ func uploadEmoji(emoji bytes.Buffer, name string) {
 	contentType := mw.FormDataContentType()
 	mw.Close()
 	req, _ := http.NewRequest("POST", url, body)
-	req.Header.Set("Authorization", "Bearer xoxs")
+	req.Header.Set("Authorization", "Bearer xoxs-")
 	req.Header.Set("ContentType", contentType)
 	client := new(http.Client)
 	resp, _ := client.Do(req)
+	ioutil.ReadAll(resp.Body)
 
-	// resp, _ := http.Post(url, contentType, body)
 	resp.Body.Close()
 }

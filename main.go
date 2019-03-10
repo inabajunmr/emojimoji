@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/inabajunmr/emosh"
+	"github.com/inabajunmr/emosh/emosh"
 	gocolor "github.com/inabajunmr/gocolors"
 )
 
