@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"image/jpeg"
+	"io"
+	"mime/multipart"
+	"net/http"
 	"net/url"
 	"os"
 
@@ -12,7 +15,6 @@ import (
 	"github.com/inabajunmr/emosh"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 )
 
 type slackRequest struct {
@@ -69,7 +71,8 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	jpeg.Encode(buf, emoji, nil)
 
 	// Slack api doc https://webapps.stackexchange.com/questions/89998/can-a-slackbot-create-emoji
-	// TODO
+	// access to slack
+	uploadEmoji(*buf, "test")
 
 	return events.APIGatewayProxyResponse{
 		Body:       "Custom slash commands",
@@ -77,6 +80,42 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	}, nil
 }
 
+// func main() {
+// 	lambda.Start(handler)
+// }
+
 func main() {
-	lambda.Start(handler)
+	fcolorName := "Black"
+	bcolorName := "White"
+	fcolor, _ := gocolor.ValueOf(fcolorName, 255)
+	bcolor, _ := gocolor.ValueOf(bcolorName, 255)
+	// Generate Emoji
+	emoji, _ := emosh.GenerateEmoji("test,", bcolor, fcolor)
+	buf := &bytes.Buffer{}
+	jpeg.Encode(buf, emoji, nil)
+	uploadEmoji(*buf, "emosh")
+}
+
+func uploadEmoji(emoji bytes.Buffer, name string) {
+	url := "https://slack.com/api/emoji.add"
+
+	body := &bytes.Buffer{}
+	mw := multipart.NewWriter(body)
+	imageField, _ := mw.CreateFormFile("image", "emoji.jpg")
+	emoji.WriteTo(imageField)
+	nameField, _ := mw.CreateFormField("name")
+	io.WriteString(nameField, name)
+	modeField, _ := mw.CreateFormField("mode")
+	io.WriteString(modeField, "data")
+
+	contentType := mw.FormDataContentType()
+	mw.Close()
+	req, _ := http.NewRequest("POST", url, body)
+	req.Header.Set("Authorization", "Bearer xoxs")
+	req.Header.Set("ContentType", contentType)
+	client := new(http.Client)
+	resp, _ := client.Do(req)
+
+	// resp, _ := http.Post(url, contentType, body)
+	resp.Body.Close()
 }
