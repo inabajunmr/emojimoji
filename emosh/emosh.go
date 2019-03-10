@@ -81,7 +81,7 @@ func GenerateEmoji(text string, bcolor color.RGBA, fcolor color.RGBA) (*image.RG
 }
 
 func loadFont() (font *truetype.Font, err error) {
-	f, err := Assets.Open("/html/index.html")
+	f, err := Assets.Open("/GenShinGothic-Bold.ttf")
 	if err != nil {
 		fmt.Println(err)
 		return nil, xerrors.Errorf("Unexpected error. Can not load font file.", err)
